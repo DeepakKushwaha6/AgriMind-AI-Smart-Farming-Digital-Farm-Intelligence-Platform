@@ -1,0 +1,71 @@
+{
+  "user_agent": "AgriMindAI-Bot/1.0 (+https://agrimind.org/bot; agricultural-research)",
+  "rate_limit_seconds": 3.0,
+  "timeout_seconds": 10.0,
+  "max_retries": 3,
+  "backoff_factor": 1.5,
+  "categories": {
+    "weather": {
+      "primary": {
+        "domain": "open-meteo.com",
+        "url_template": "https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,relative_humidity_2m,precipitation,rain,weather_code,wind_speed_10m,soil_temperature_0cm,soil_moisture_0_to_1cm&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,et0_fao_evapotranspiration&timezone=auto&forecast_days=7",
+        "is_api": true,
+        "format": "json"
+      },
+      "scraper_fallback": {
+        "domain": "weather.com",
+        "allowed_by_robots_txt": true,
+        "expected_elements": ["temperature", "humidity", "wind", "precipitation"],
+        "min_expected_fields": 3
+      }
+    },
+    "mandi": {
+      "primary": {
+        "name": "data_gov_in",
+        "resource_url": "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070",
+        "format": "json"
+      },
+      "scraper_fallback": {
+        "domain": "commodityonline.com",
+        "base_url": "https://www.commodityonline.com/mandiprices/{commodity}/{state}/{district}",
+        "user_agent_required": true,
+        "rate_limit_seconds": 3.0,
+        "expected_selectors": {
+          "price_table": ".mandi-price-table, table.table-striped, .table",
+          "commodity_title": "h1, .page-title, .commodity-title",
+          "modal_price_pattern": "₹?\\s*([0-9]{3,5})\\s*(?:/\\s*Quintal|/\\s*qtl)?",
+          "date_pattern": "\\b(\\d{1,2}[-/\\s][A-Za-z]{3,9}[-/\\s]\\d{2,4}|\\d{1,2}[-/]\\d{1,2}[-/]\\d{2,4})\\b"
+        },
+        "min_expected_columns": ["Market", "Arrivals", "Modal Price"],
+        "price_sanity_range": {
+          "Paddy": [1500, 4500],
+          "Wheat": [1800, 4000],
+          "Maize": [1200, 3500],
+          "Mustard": [3500, 8000]
+        }
+      }
+    },
+    "geocoding": {
+      "primary": {
+        "domain": "nominatim.openstreetmap.org",
+        "url_template": "https://nominatim.openstreetmap.org/search?format=json&q={query}&limit=5",
+        "rate_limit_seconds": 1.0,
+        "cache_ttl_days": 30
+      },
+      "secondary": {
+        "domain": "geocoding-api.open-meteo.com",
+        "url_template": "https://geocoding-api.open-meteo.com/v1/search?name={query}&count=5&language=en&format=json"
+      }
+    },
+    "schemes": {
+      "primary": {
+        "sources": [
+          { "name": "PM-KISAN", "url": "https://pmkisan.gov.in/", "expected_text": "Pradhan Mantri Kisan Samman Nidhi" },
+          { "name": "PMFBY", "url": "https://pmfby.gov.in/", "expected_text": "Pradhan Mantri Fasal Bima Yojana" },
+          { "name": "Soil Health Card", "url": "https://www.soilhealth.dac.gov.in/", "expected_text": "Soil Health Card" },
+          { "name": "Kisan Rin Portal", "url": "https://fasalrin.gov.in/", "expected_text": "KCC" }
+        ]
+      }
+    }
+  }
+}

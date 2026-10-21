@@ -1,0 +1,6 @@
+{
+  "name": "AgriMind AI — Smart Farming Digital Farm Intelligence Platform",
+  "description": "Production farm intelligence platform with evidence-based agronomic recommendations, weather and mandi price tracking, BYOK API key resolver with scraping fallback, and multi-user farm management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
