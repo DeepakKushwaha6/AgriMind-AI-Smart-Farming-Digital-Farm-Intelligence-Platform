@@ -1,0 +1,3 @@
+{
+  "backend/tests/test_decision_engine.py::test_fertilizer_split_urea_rain_delay": true
+}

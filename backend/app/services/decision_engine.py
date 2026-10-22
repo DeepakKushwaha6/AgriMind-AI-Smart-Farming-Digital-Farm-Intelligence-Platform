@@ -61,7 +61,7 @@ class DecisionEngine:
         if heavy_rain_tomorrow:
             return {
                 "action": "Delay 2nd top-dressing of Neem-Coated Urea (28 kg/acre) until Wednesday morning after heavy rain subsides.",
-                "reason": f"Broadcasting urea before heavy rain causes 35–45% leaching and runoff loss. Soil Health Card shows low N ({soil_n} kg/ha), requiring careful split application.",
+                "reason": f"Broadcasting urea before heavy rain causes 35–45% runoff and leaching loss. Soil Health Card shows low N ({soil_n} kg/ha), requiring careful split application.",
                 "evidence": f"Soil Health Card Available N: {soil_n} kg/ha (Low) • Rain Window: Peak on Tuesday, Clear on Wednesday–Friday",
                 "confidence": "89% (High — ICAR Lowland Rice Nutrient Protocol)",
                 "risk_and_limitations": "Apply between 07:00 and 10:00 AM on damp soil with 2–3 cm standing water; do not broadcast on midday wet leaves.",

@@ -16,15 +16,13 @@ bearer_scheme = HTTPBearer(auto_error=False)
 def _get_fernet() -> Fernet:
     """Return a Fernet cipher instance using the configured secret."""
     key = settings.APP_ENCRYPTION_KEY.strip()
-    # Ensure key is valid 32-byte urlsafe base64
+    if not key:
+        raise ValueError("APP_ENCRYPTION_KEY is not configured")
     try:
-        if len(key) < 32:
-            padded = key.ljust(32, "=")[:32]
-            key = base64.urlsafe_b64encode(padded.encode()).decode()
         return Fernet(key.encode())
-    except Exception:
-        derived = base64.urlsafe_b64encode(key.encode().ljust(32, b"0")[:32])
-        return Fernet(derived)
+    except Exception as e:
+        raise ValueError(f"Invalid APP_ENCRYPTION_KEY: {e}")
+
 
 
 def hash_password(password: str) -> str:

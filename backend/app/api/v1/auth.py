@@ -63,8 +63,19 @@ async def get_admin_user(current_user: User = Depends(get_current_user)) -> User
     return current_user
 
 
+from pydantic import BaseModel
+from app.core.rate_limit import limiter
+
+DUMMY_ARGON2_HASH = "$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$RdescudvJCsgqlfreOJAcw"
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: Optional[str] = None
+
+
 @router.post("/register", response_model=TokenResponse)
-async def register(req: UserRegisterRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def register(request: Request, req: UserRegisterRequest, db: AsyncSession = Depends(get_db)):
     stmt = select(User).where(User.email == req.email.lower())
     res = await db.execute(stmt)
     if res.scalar_one_or_none():
@@ -107,12 +118,28 @@ async def register(req: UserRegisterRequest, db: AsyncSession = Depends(get_db))
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(req: UserLoginRequest, response: Response, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def login(request: Request, req: UserLoginRequest, response: Response, db: AsyncSession = Depends(get_db)):
+    # Constant-time empty password check
+    if not req.password or not req.password.strip():
+        verify_password("dummy_constant_time", DUMMY_ARGON2_HASH)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "INVALID_CREDENTIALS", "message": "Incorrect email or password"}
+        )
+
     stmt = select(User).where(User.email == req.email.lower())
     res = await db.execute(stmt)
     user = res.scalar_one_or_none()
 
-    if not user or not verify_password(req.password, user.hashed_password):
+    if not user:
+        verify_password(req.password, DUMMY_ARGON2_HASH)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "INVALID_CREDENTIALS", "message": "Incorrect email or password"}
+        )
+
+    if not verify_password(req.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": "INVALID_CREDENTIALS", "message": "Incorrect email or password"}
@@ -153,6 +180,80 @@ async def login(req: UserLoginRequest, response: Response, db: AsyncSession = De
             "state": user.state
         }
     )
+
+
+@router.post("/refresh", response_model=TokenResponse)
+async def refresh(request: Request, response: Response, body: Optional[RefreshTokenRequest] = None, db: AsyncSession = Depends(get_db)):
+    token = None
+    if body and body.refresh_token:
+        token = body.refresh_token
+    elif "refresh_token" in request.cookies:
+        token = request.cookies.get("refresh_token")
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "UNAUTHENTICATED", "message": "Refresh token required"}
+        )
+
+    payload = decode_token(token)
+    if payload.get("type") != "refresh":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "INVALID_TOKEN", "message": "Invalid token type"}
+        )
+
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "INVALID_TOKEN", "message": "Invalid token subject"}
+        )
+
+    stmt = select(User).where(User.id == int(user_id))
+    res = await db.execute(stmt)
+    user = res.scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "USER_NOT_FOUND", "message": "User not found"}
+        )
+
+    token_data = {"sub": str(user.id), "email": user.email, "role": user.role.value}
+    new_access = create_access_token(token_data)
+    new_refresh = create_refresh_token(token_data)
+
+    response.set_cookie(
+        key="access_token",
+        value=new_access,
+        httponly=True,
+        samesite="lax",
+        secure=settings.ENVIRONMENT != "development",
+        max_age=900
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=new_refresh,
+        httponly=True,
+        samesite="lax",
+        secure=settings.ENVIRONMENT != "development",
+        max_age=86400 * 7
+    )
+
+    return TokenResponse(
+        access_token=new_access,
+        refresh_token=new_refresh,
+        user={
+            "id": user.id,
+            "email": user.email,
+            "name": user.name,
+            "role": user.role.value,
+            "village": user.village,
+            "district": user.district,
+            "state": user.state
+        }
+    )
+
 
 
 @router.get("/me", response_model=UserResponse)

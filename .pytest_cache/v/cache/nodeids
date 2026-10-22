@@ -1,0 +1,11 @@
+[
+  "backend/tests/test_auth_and_isolation.py::test_cross_user_key_isolation",
+  "backend/tests/test_auth_and_isolation.py::test_encryption_and_masking",
+  "backend/tests/test_auth_and_isolation.py::test_user_registration_and_login",
+  "backend/tests/test_decision_engine.py::test_fertilizer_split_urea_rain_delay",
+  "backend/tests/test_decision_engine.py::test_irrigation_hold_on_heavy_rain",
+  "backend/tests/test_decision_engine.py::test_net_realisation_math",
+  "backend/tests/test_scraper.py::test_market_commodity_alias_normalization",
+  "backend/tests/test_scraper.py::test_scraper_structure_validation_failure_on_layout_change",
+  "backend/tests/test_scraper.py::test_scraper_structure_validation_success"
+]
